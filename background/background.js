@@ -371,43 +371,42 @@ function showBlockedPage(domain, awayEndTimestamp) {
       <div class="bar-bg"><div class="bar-fill" id="tg-bar" style="width:100%"></div></div>
     </div>
   </div>
-  <script>
-    (function() {
-      const END = ${awayEndTimestamp};
-      const TOTAL = END - Date.now();
-      function fmt(ms) {
-        if (ms <= 0) return '00:00';
-        const totalSec = Math.ceil(ms / 1000);
-        const h = Math.floor(totalSec / 3600);
-        const m = Math.floor((totalSec % 3600) / 60);
-        const s = totalSec % 60;
-        const mm = String(m).padStart(2, '0');
-        const ss = String(s).padStart(2, '0');
-        return h > 0 ? h + ':' + mm + ':' + ss : mm + ':' + ss;
-      }
-      function update() {
-        const rem = END - Date.now();
-        const cd = document.getElementById('tg-cd');
-        const bar = document.getElementById('tg-bar');
-        if (!cd) return;
-        if (rem <= 0) {
-          cd.textContent = '00:00';
-          cd.classList.add('done');
-          if (bar) bar.style.width = '0%';
-          clearInterval(iv);
-          return;
-        }
-        cd.textContent = fmt(rem);
-        if (bar && TOTAL > 0) bar.style.width = Math.max(0, (rem / TOTAL) * 100) + '%';
-      }
-      update();
-      const iv = setInterval(update, 1000);
-    })();
-  </script>
 </body>
 </html>`);
   document.close();
+
+  // Run the countdown logic immediately in the injected context
+  const END = awayEndTimestamp;
+  const TOTAL = END - Date.now();
+  function fmt(ms) {
+    if (ms <= 0) return '00:00';
+    const totalSec = Math.ceil(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const mm = String(m).padStart(2, '0');
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? h + ':' + mm + ':' + ss : mm + ':' + ss;
+  }
+  function update() {
+    const rem = END - Date.now();
+    const cd = document.getElementById('tg-cd');
+    const bar = document.getElementById('tg-bar');
+    if (!cd) return;
+    if (rem <= 0) {
+      cd.textContent = '00:00';
+      cd.classList.add('done');
+      if (bar) bar.style.width = '0%';
+      clearInterval(iv);
+      return;
+    }
+    cd.textContent = fmt(rem);
+    if (bar && TOTAL > 0) bar.style.width = Math.max(0, (rem / TOTAL) * 100) + '%';
+  }
+  update();
+  const iv = setInterval(update, 1000);
 }
+
 
 // ─── Message Handler (from popup/settings) ───────────────────────────────────
 
