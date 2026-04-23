@@ -183,7 +183,64 @@
   <!-- Toast -->
   <div class="toast hidden" id="toast"></div>
 
+  <!-- Look Away Reminder -->
+  <section class="card lookaway-card" id="lookAwayCard">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-icon">👁</span>
+        Look Away Reminder
+      </h2>
+      <label class="toggle" title="Enable / disable look-away reminders">
+        <input type="checkbox" id="lookAwayEnabled" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div id="lookAwayBody" class="lookaway-body">
+      <div class="lookaway-tip">
+        💡 <strong>20-20-20 Rule:</strong> Every 20 minutes, look at something 20 feet (6 m) away
+        for 20 seconds. Clinically proven to reduce digital eye strain.
+      </div>
+
+      <div class="form-grid-2" style="margin-top:20px">
+        <div class="form-group">
+          <label class="form-label" for="lookAwayInterval">
+            Reminder Every
+            <span class="badge">minutes</span>
+          </label>
+          <div class="input-with-icon">
+            <span class="input-icon">⏰</span>
+            <input type="number" id="lookAwayInterval" class="form-input"
+              value="20" min="5" max="120" />
+          </div>
+          <span class="form-hint">Default: 20 min (20-20-20 rule)</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="lookAwayDuration">
+            Overlay Duration
+            <span class="badge">seconds</span>
+          </label>
+          <div class="input-with-icon">
+            <span class="input-icon">⏱</span>
+            <input type="number" id="lookAwayDuration" class="form-input"
+              value="20" min="10" max="120" />
+          </div>
+          <span class="form-hint">How long the reminder stays visible</span>
+        </div>
+      </div>
+
+      <div class="form-actions" style="margin-top:20px;justify-content:space-between;align-items:center">
+        <span class="la-status" id="laStatus"></span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" id="previewLookAway">👁 Preview</button>
+          <button class="btn btn-primary" id="saveLookAway">Save</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <script src="settings.js"></script>
+
 </body>
 
 </html>

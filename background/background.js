@@ -458,3 +458,219 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
     await resumeTrackingForTab(tabs[0].id);
   }
 });
+
+// ─── Look Away Reminder ───────────────────────────────────────────────────────
+
+const ALARM_NAME = 'tabguard-lookaway';
+
+async function getLookAwayConfig() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['lookAway'], (r) => {
+      resolve(r.lookAway || { enabled: false, intervalMinutes: 20, durationSeconds: 20 });
+    });
+  });
+}
+
+// Find the best content tab to inject into:
+// 1. An active tab in any window that is a real web page
+// 2. Fall back to the most recently accessed non-extension tab
+async function findBestContentTab() {
+  const BLOCKED = ['chrome://', 'about:', 'chrome-extension://', 'moz-extension://', 'edge://'];
+  const isContent = (url) => url && !BLOCKED.some((p) => url.startsWith(p));
+
+  // First: check all currently active tabs across all windows
+  const activeTabs = await chrome.tabs.query({ active: true });
+  const activeContent = activeTabs.find((t) => isContent(t.url));
+  if (activeContent) return activeContent;
+
+  // Fallback: most recently accessed non-extension tab in any window
+  const allTabs = await chrome.tabs.query({});
+  const contentTabs = allTabs.filter((t) => isContent(t.url));
+  if (contentTabs.length === 0) return null;
+  // Sort by lastAccessed descending (most recent first)
+  contentTabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+  return contentTabs[0];
+}
+
+async function initLookAwayAlarm() {
+  const cfg = await getLookAwayConfig();
+  await chrome.alarms.clear(ALARM_NAME);
+  if (cfg.enabled && cfg.intervalMinutes > 0) {
+    chrome.alarms.create(ALARM_NAME, { periodInMinutes: cfg.intervalMinutes });
+  }
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== ALARM_NAME) return;
+  const cfg = await getLookAwayConfig();
+  if (!cfg.enabled) return;
+
+  const tab = await findBestContentTab();
+  if (!tab) return;
+
+  const exIdx = Math.floor(Math.random() * 5);
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: showLookAwayOverlay,
+    args: [cfg.durationSeconds, exIdx],
+  }).catch(() => {});
+});
+
+// Injected into the active tab
+function showLookAwayOverlay(durationSec, exIdx) {
+  if (document.getElementById('tg-lookaway')) return;
+
+  const EX = [
+    { icon: '🏔️', color: '#a78bfa', title: '20-20-20 Rule',      sub: 'Look at something ~6 metres (20 ft) away',      steps: ['Find a distant object across the room or outside', 'Relax your gaze and focus on it softly', 'Keep looking without straining for the full time', 'Blink naturally while you look'],            anim: 'far' },
+    { icon: '👁️', color: '#34d399', title: 'Intentional Blinking', sub: 'Refresh your tear film and reduce dryness',     steps: ['Blink rapidly 10–15 times in a row', 'Close eyes gently and hold for 5 seconds', 'Squeeze eyes shut briefly then fully relax', 'Repeat 3 full cycles'],                          anim: 'blink' },
+    { icon: '🔄', color: '#60a5fa', title: 'Eye Rolling',           sub: 'Release tension in your eye muscles',           steps: ['Close your eyes halfway and relax', 'Roll them slowly clockwise 5 full circles', 'Then counter-clockwise 5 full circles', 'Close eyes and rest for a moment'],             anim: 'roll' },
+    { icon: '✋', color: '#f472b6', title: 'Palming',               sub: 'Soothe optic nerves with warmth & darkness',    steps: ['Rub your palms together vigorously for warmth', 'Cup warm palms gently over closed eyes', 'Sit in complete darkness — no pressure on eyes', 'Breathe slowly and let your mind rest'], anim: 'palm' },
+    { icon: '🎯', color: '#fbbf24', title: 'Focus Shifting',        sub: 'Exercise your ciliary (focusing) muscles',      steps: ['Hold your thumb about 10 cm from your nose', 'Focus on your thumb for 3 full seconds', 'Shift focus to a far object for 3 seconds', 'Repeat the near-far cycle 10 times'],          anim: 'focus' },
+  ];
+
+  const ex = EX[exIdx % EX.length];
+  const CIRC = 2 * Math.PI * 40; // 251.3
+
+  const eyeAnimations = {
+    far:   `@keyframes tg-iris-far{0%,100%{transform:translate(0,0)}50%{transform:translate(8px,-3px)}}`,
+    blink: `@keyframes tg-blink{0%,80%,100%{transform:scaleY(1)}85%,95%{transform:scaleY(0.06)}}`,
+    roll:  `@keyframes tg-roll{0%{transform:translate(0,-12px)}25%{transform:translate(12px,0)}50%{transform:translate(0,12px)}75%{transform:translate(-12px,0)}100%{transform:translate(0,-12px)}}`,
+    palm:  `@keyframes tg-palm{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}`,
+    focus: `@keyframes tg-near{0%,100%{opacity:1;r:8}50%{opacity:0.3;r:14}}`,
+  };
+
+  const irisAnim = {
+    far:   'tg-iris-far 3s ease-in-out infinite',
+    blink: 'none',
+    roll:  'tg-roll 2.5s linear infinite',
+    palm:  'none',
+    focus: 'none',
+  };
+  const eyeAnim = {
+    far:   'none',
+    blink: 'tg-blink 2.5s ease-in-out infinite',
+    roll:  'none',
+    palm:  'tg-palm 2s ease-in-out infinite',
+    focus: 'none',
+  };
+
+  const overlay = document.createElement('div');
+  overlay.id = 'tg-lookaway';
+  overlay.innerHTML = `
+<style>
+#tg-lookaway{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;animation:tg-la-in .4s cubic-bezier(.4,0,.2,1)}
+@keyframes tg-la-in{from{opacity:0;backdrop-filter:blur(0)}to{opacity:1;backdrop-filter:blur(14px)}}
+@keyframes tg-la-out{to{opacity:0}}
+.tg-la-bg{position:absolute;inset:0;background:rgba(10,8,30,.72);backdrop-filter:blur(14px)}
+.tg-la-card{position:relative;z-index:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);border-radius:28px;padding:36px 40px 32px;max-width:480px;width:calc(100vw - 48px);text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.7);animation:tg-la-card-in .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes tg-la-card-in{from{transform:translateY(24px) scale(.95);opacity:0}to{transform:none;opacity:1}}
+.tg-la-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${ex.color};background:${ex.color}22;border:1px solid ${ex.color}44;border-radius:100px;padding:4px 12px;margin-bottom:18px}
+.tg-la-eye-wrap{width:140px;height:84px;margin:0 auto 20px;position:relative;display:flex;align-items:center;justify-content:center}
+.tg-la-eye-svg{width:140px;height:84px;overflow:visible;transform-origin:center;animation:${eyeAnim[ex.anim]}}
+.tg-la-iris{animation:${irisAnim[ex.anim]};transform-origin:center}
+.tg-la-title{font-size:22px;font-weight:800;color:#f1f0ff;margin:0 0 6px;letter-spacing:-.4px}
+.tg-la-sub{font-size:14px;color:rgba(241,240,255,.6);margin:0 0 22px}
+.tg-la-steps{text-align:left;display:flex;flex-direction:column;gap:8px;margin-bottom:28px}
+.tg-la-step{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:rgba(241,240,255,.8);line-height:1.5}
+.tg-la-step span{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${ex.color}33;border:1px solid ${ex.color}66;color:${ex.color};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.tg-la-cd-wrap{position:relative;width:90px;height:90px;margin:0 auto 16px}
+.tg-la-ring{width:90px;height:90px;transform:rotate(-90deg)}
+.tg-la-ring-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:6}
+.tg-la-ring-fill{fill:none;stroke:${ex.color};stroke-width:6;stroke-linecap:round;stroke-dasharray:${CIRC.toFixed(1)};stroke-dashoffset:0;transition:stroke-dashoffset 1s linear;filter:drop-shadow(0 0 6px ${ex.color})}
+.tg-la-time{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#f1f0ff;letter-spacing:-1px}
+.tg-la-cd-label{font-size:12px;color:rgba(241,240,255,.4);margin-bottom:20px}
+.tg-la-skip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(241,240,255,.5);font-size:13px;font-weight:500;padding:8px 20px;cursor:pointer;font-family:inherit;transition:all .2s}
+.tg-la-skip:hover{background:rgba(255,255,255,.12);color:#f1f0ff}
+${eyeAnimations[ex.anim]}
+</style>
+<div class="tg-la-bg"></div>
+<div class="tg-la-card">
+  <div class="tg-la-badge">👁 Eye Break — Look Away</div>
+  <div class="tg-la-eye-wrap">
+    <svg class="tg-la-eye-svg" viewBox="-20 -20 140 84">
+      <defs>
+        <radialGradient id="tg-iris-g" cx="40%" cy="35%">
+          <stop offset="0%" stop-color="#c4b5fd"/>
+          <stop offset="100%" stop-color="${ex.color}"/>
+        </radialGradient>
+        <clipPath id="tg-eye-clip">
+          <path d="M5,22 Q50,-4 95,22 Q50,48 5,22 Z"/>
+        </clipPath>
+      </defs>
+      <!-- White of eye -->
+      <path d="M5,22 Q50,-4 95,22 Q50,48 5,22 Z" fill="rgba(255,255,255,0.95)"/>
+      <!-- Iris + pupil group (animated) -->
+      <g clip-path="url(#tg-eye-clip)">
+        <g class="tg-la-iris">
+          <circle cx="50" cy="22" r="17" fill="url(#tg-iris-g)"/>
+          <circle cx="50" cy="22" r="9"  fill="#0d0d1a"/>
+          <circle cx="55" cy="17" r="3.5" fill="rgba(255,255,255,0.65)"/>
+        </g>
+      </g>
+      <!-- Eyelid line top -->
+      <path d="M5,22 Q50,-4 95,22" fill="none" stroke="rgba(0,0,0,0.15)" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <h2 class="tg-la-title">${ex.icon} ${ex.title}</h2>
+  <p class="tg-la-sub">${ex.sub}</p>
+  <div class="tg-la-steps">
+    ${ex.steps.map((s, i) => `<div class="tg-la-step"><span>${i + 1}</span>${s}</div>`).join('')}
+  </div>
+  <div class="tg-la-cd-wrap">
+    <svg class="tg-la-ring" viewBox="0 0 90 90">
+      <circle class="tg-la-ring-bg"   cx="45" cy="45" r="40"/>
+      <circle class="tg-la-ring-fill" id="tg-la-rf" cx="45" cy="45" r="40"/>
+    </svg>
+    <div class="tg-la-time" id="tg-la-time">${durationSec}</div>
+  </div>
+  <div class="tg-la-cd-label">seconds remaining</div>
+  <button class="tg-la-skip" id="tg-la-skip">Skip this reminder</button>
+</div>`;
+
+  document.body.appendChild(overlay);
+
+  let rem = durationSec;
+  const C = 2 * Math.PI * 40;
+  const rf = document.getElementById('tg-la-rf');
+  const te = document.getElementById('tg-la-time');
+
+  function dismiss() {
+    clearInterval(iv);
+    overlay.style.animation = 'tg-la-out .35s ease forwards';
+    setTimeout(() => overlay.remove(), 370);
+  }
+
+  const iv = setInterval(() => {
+    rem--;
+    if (te) te.textContent = rem;
+    if (rf) rf.style.strokeDashoffset = C * (1 - rem / durationSec);
+    if (rem <= 0) dismiss();
+  }, 1000);
+
+  document.getElementById('tg-la-skip').addEventListener('click', dismiss);
+}
+
+// Re-init alarm when look-away settings change
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === 'LOOKAWAY_UPDATED') {
+    initLookAwayAlarm().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  if (msg.type === 'PREVIEW_LOOKAWAY') {
+    findBestContentTab().then((tab) => {
+      if (!tab) return;
+      const exIdx = Math.floor(Math.random() * 5);
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: showLookAwayOverlay,
+        args: [msg.durationSeconds || 20, exIdx],
+      }).catch(() => {});
+    });
+    sendResponse({ ok: true });
+  }
+});
+
+
+// Boot look-away alarm
+initLookAwayAlarm();
+

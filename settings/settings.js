@@ -430,7 +430,80 @@ function notifyBackground() {
   });
 }
 
+// ─── Look Away Reminder Settings ─────────────────────────────────────────────
+
+async function loadLookAwaySettings() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['lookAway'], (r) => {
+      resolve(r.lookAway || { enabled: false, intervalMinutes: 20, durationSeconds: 20 });
+    });
+  });
+}
+
+async function saveLookAwaySettings() {
+  const enabled  = document.getElementById('lookAwayEnabled').checked;
+  const interval = parseInt(document.getElementById('lookAwayInterval').value, 10) || 20;
+  const duration = parseInt(document.getElementById('lookAwayDuration').value, 10) || 20;
+
+  if (interval < 5)  { showToast('⚠️ Minimum interval is 5 minutes');  return; }
+  if (duration < 10) { showToast('⚠️ Minimum duration is 10 seconds'); return; }
+
+  const cfg = { enabled, intervalMinutes: interval, durationSeconds: duration };
+  await new Promise((resolve) => chrome.storage.local.set({ lookAway: cfg }, resolve));
+
+  await new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'LOOKAWAY_UPDATED' }, () => {
+      chrome.runtime.lastError;
+      resolve();
+    });
+  });
+
+  updateLaStatus(cfg);
+  showToast(enabled ? `✅ Look-away reminder set every ${interval}m` : '⏸ Look-away reminder disabled');
+}
+
+function updateLaStatus(cfg) {
+  const el = document.getElementById('laStatus');
+  if (!el) return;
+  if (cfg.enabled) {
+    el.textContent = `🟢 Active — every ${cfg.intervalMinutes}m for ${cfg.durationSeconds}s`;
+    el.style.color = 'var(--success)';
+  } else {
+    el.textContent = '⚫ Disabled';
+    el.style.color = 'var(--text-dim)';
+  }
+}
+
+function applyLookAwayToggleUi(enabled) {
+  const body = document.getElementById('lookAwayBody');
+  if (body) body.style.opacity = enabled ? '1' : '0.5';
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const cfg = await loadLookAwaySettings();
+  document.getElementById('lookAwayEnabled').checked = cfg.enabled;
+  document.getElementById('lookAwayInterval').value  = cfg.intervalMinutes;
+  document.getElementById('lookAwayDuration').value  = cfg.durationSeconds;
+  updateLaStatus(cfg);
+  applyLookAwayToggleUi(cfg.enabled);
+
+  document.getElementById('lookAwayEnabled').addEventListener('change', (e) => {
+    applyLookAwayToggleUi(e.target.checked);
+  });
+
+  document.getElementById('saveLookAway').addEventListener('click', saveLookAwaySettings);
+
+  document.getElementById('previewLookAway').addEventListener('click', () => {
+    const dur = parseInt(document.getElementById('lookAwayDuration').value, 10) || 20;
+    chrome.runtime.sendMessage({ type: 'PREVIEW_LOOKAWAY', durationSeconds: dur }, () => {
+      chrome.runtime.lastError;
+    });
+    showToast('👁 Previewing reminder on current tab…');
+  });
+});
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
 function normalizeDomain(input) {
   try {
     if (!input.includes('://')) input = 'https://' + input;
