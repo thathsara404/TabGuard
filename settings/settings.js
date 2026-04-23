@@ -466,7 +466,6 @@ function updateLaStatus(cfg) {
   const el = document.getElementById('laStatus');
   if (!el) return;
   if (cfg.enabled) {
-    el.textContent = `🟢 Active — every ${cfg.intervalMinutes}m for ${cfg.durationSeconds}s`;
     el.style.color = 'var(--success)';
   } else {
     el.textContent = '⚫ Disabled';
@@ -529,12 +528,36 @@ function updateWellnessStatus(elId, cfg, activeColor) {
   const el = document.getElementById(elId);
   if (!el) return;
   if (cfg.enabled) {
-    el.textContent = `🟢 ${cfg.intervalMinutes}m / ${cfg.durationSeconds}s`;
     el.style.color = activeColor;
   } else {
     el.textContent = '⚫ Off';
     el.style.color = 'var(--text-dim)';
   }
+}
+
+// ─── Live Wellness Timers ───────────────────────────────────────────────────
+
+function startWellnessCountdown() {
+  setInterval(() => {
+    chrome.alarms.getAll((alarms) => {
+      const now = Date.now();
+      
+      const laAlarm = alarms.find(a => a.name === 'tabguard-lookaway');
+      if (document.getElementById('lookAwayEnabled').checked && laAlarm) {
+        document.getElementById('laStatus').textContent = `🟢 Next in ${formatMs(Math.max(0, laAlarm.scheduledTime - now))}`;
+      }
+
+      const suAlarm = alarms.find(a => a.name === 'tabguard-standup');
+      if (document.getElementById('standUpEnabled').checked && suAlarm) {
+        document.getElementById('suStatus').textContent = `🟢 Next in ${formatMs(Math.max(0, suAlarm.scheduledTime - now))}`;
+      }
+
+      const wAlarm = alarms.find(a => a.name === 'tabguard-water');
+      if (document.getElementById('waterEnabled').checked && wAlarm) {
+        document.getElementById('wStatus').textContent = `🟢 Next in ${formatMs(Math.max(0, wAlarm.scheduledTime - now))}`;
+      }
+    });
+  }, 1000);
 }
 
 // ─── Wellness DOMContentLoaded init ──────────────────────────────────────────
@@ -588,6 +611,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.runtime.sendMessage({ type: 'PREVIEW_WATER', durationSeconds: dur }, () => { chrome.runtime.lastError; });
     showToast('💧 Previewing water reminder…');
   });
+
+  // Start the live countdowns
+  startWellnessCountdown();
 });
 
 
