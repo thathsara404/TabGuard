@@ -491,12 +491,18 @@ async function findBestContentTab() {
   return contentTabs[0];
 }
 
-async function initLookAwayAlarm() {
+async function initLookAwayAlarm(force = false) {
   const cfg = await getLookAwayConfig();
-  await chrome.alarms.clear(ALARM_NAME);
-  if (cfg.enabled && cfg.intervalMinutes > 0) {
-    chrome.alarms.create(ALARM_NAME, { periodInMinutes: cfg.intervalMinutes });
+  if (!cfg.enabled || cfg.intervalMinutes <= 0) {
+    await chrome.alarms.clear(ALARM_NAME);
+    return;
   }
+  if (!force) {
+    const existing = await chrome.alarms.get(ALARM_NAME);
+    if (existing) return;
+  }
+  await chrome.alarms.clear(ALARM_NAME);
+  chrome.alarms.create(ALARM_NAME, { periodInMinutes: cfg.intervalMinutes });
 }
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -652,7 +658,7 @@ ${eyeAnimations[ex.anim]}
 // Re-init alarm when look-away settings change
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'LOOKAWAY_UPDATED') {
-    initLookAwayAlarm().then(() => sendResponse({ ok: true }));
+    initLookAwayAlarm(true).then(() => sendResponse({ ok: true }));
     return true;
   }
   if (msg.type === 'PREVIEW_LOOKAWAY') {
@@ -681,12 +687,18 @@ async function getStandUpConfig() {
   });
 }
 
-async function initStandUpAlarm() {
+async function initStandUpAlarm(force = false) {
   const cfg = await getStandUpConfig();
-  await chrome.alarms.clear(STANDUP_ALARM);
-  if (cfg.enabled && cfg.intervalMinutes > 0) {
-    chrome.alarms.create(STANDUP_ALARM, { periodInMinutes: cfg.intervalMinutes });
+  if (!cfg.enabled || cfg.intervalMinutes <= 0) {
+    await chrome.alarms.clear(STANDUP_ALARM);
+    return;
   }
+  if (!force) {
+    const existing = await chrome.alarms.get(STANDUP_ALARM);
+    if (existing) return;
+  }
+  await chrome.alarms.clear(STANDUP_ALARM);
+  chrome.alarms.create(STANDUP_ALARM, { periodInMinutes: cfg.intervalMinutes });
 }
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -764,7 +776,7 @@ function showStandUpOverlay(durationSec, exIdx) {
 }
 
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
-  if (msg.type === 'STANDUP_UPDATED') { initStandUpAlarm().then(() => sendResponse({ ok: true })); return true; }
+  if (msg.type === 'STANDUP_UPDATED') { initStandUpAlarm(true).then(() => sendResponse({ ok: true })); return true; }
   if (msg.type === 'PREVIEW_STANDUP') {
     findBestContentTab().then((tab) => {
       if (!tab) return;
@@ -786,12 +798,18 @@ async function getWaterConfig() {
   });
 }
 
-async function initWaterAlarm() {
+async function initWaterAlarm(force = false) {
   const cfg = await getWaterConfig();
-  await chrome.alarms.clear(WATER_ALARM);
-  if (cfg.enabled && cfg.intervalMinutes > 0) {
-    chrome.alarms.create(WATER_ALARM, { periodInMinutes: cfg.intervalMinutes });
+  if (!cfg.enabled || cfg.intervalMinutes <= 0) {
+    await chrome.alarms.clear(WATER_ALARM);
+    return;
   }
+  if (!force) {
+    const existing = await chrome.alarms.get(WATER_ALARM);
+    if (existing) return;
+  }
+  await chrome.alarms.clear(WATER_ALARM);
+  chrome.alarms.create(WATER_ALARM, { periodInMinutes: cfg.intervalMinutes });
 }
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -865,7 +883,7 @@ function showWaterOverlay(durationSec) {
 }
 
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
-  if (msg.type === 'WATER_UPDATED') { initWaterAlarm().then(() => sendResponse({ ok: true })); return true; }
+  if (msg.type === 'WATER_UPDATED') { initWaterAlarm(true).then(() => sendResponse({ ok: true })); return true; }
   if (msg.type === 'PREVIEW_WATER') {
     findBestContentTab().then((tab) => {
       if (!tab) return;
