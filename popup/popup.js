@@ -1,5 +1,5 @@
 /**
- * TabGuard – Popup Logic
+ * ScreenZen – Popup Logic
  */
 'use strict';
 

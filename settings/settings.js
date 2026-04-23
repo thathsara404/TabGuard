@@ -1,5 +1,5 @@
 /**
- * TabGuard – Settings Page Logic
+ * ScreenZen – Settings Page Logic
  */
 
 'use strict';
@@ -479,28 +479,117 @@ function applyLookAwayToggleUi(enabled) {
   if (body) body.style.opacity = enabled ? '1' : '0.5';
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const cfg = await loadLookAwaySettings();
-  document.getElementById('lookAwayEnabled').checked = cfg.enabled;
-  document.getElementById('lookAwayInterval').value  = cfg.intervalMinutes;
-  document.getElementById('lookAwayDuration').value  = cfg.durationSeconds;
-  updateLaStatus(cfg);
-  applyLookAwayToggleUi(cfg.enabled);
+// ─── Stand Up & Move Settings ─────────────────────────────────────────────────
 
-  document.getElementById('lookAwayEnabled').addEventListener('change', (e) => {
-    applyLookAwayToggleUi(e.target.checked);
+async function loadStandUpSettings() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['standUp'], (r) => {
+      resolve(r.standUp || { enabled: false, intervalMinutes: 60, durationSeconds: 30 });
+    });
   });
+}
 
+async function saveStandUpSettings() {
+  const enabled  = document.getElementById('standUpEnabled').checked;
+  const interval = parseInt(document.getElementById('standUpInterval').value, 10) || 60;
+  const duration = parseInt(document.getElementById('standUpDuration').value, 10) || 30;
+  if (interval < 10) { showToast('⚠️ Minimum interval is 10 minutes'); return; }
+  const cfg = { enabled, intervalMinutes: interval, durationSeconds: duration };
+  await new Promise((resolve) => chrome.storage.local.set({ standUp: cfg }, resolve));
+  chrome.runtime.sendMessage({ type: 'STANDUP_UPDATED' }, () => { chrome.runtime.lastError; });
+  updateWellnessStatus('suStatus', cfg, '#f472b6');
+  showToast(enabled ? `✅ Stand-up reminder set every ${interval}m` : '⏸ Stand-up reminder disabled');
+}
+
+// ─── Drink Water Settings ─────────────────────────────────────────────────────
+
+async function loadWaterSettings() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['water'], (r) => {
+      resolve(r.water || { enabled: false, intervalMinutes: 45, durationSeconds: 15 });
+    });
+  });
+}
+
+async function saveWaterSettings() {
+  const enabled  = document.getElementById('waterEnabled').checked;
+  const interval = parseInt(document.getElementById('waterInterval').value, 10) || 45;
+  const duration = parseInt(document.getElementById('waterDuration').value, 10) || 15;
+  if (interval < 10) { showToast('⚠️ Minimum interval is 10 minutes'); return; }
+  const cfg = { enabled, intervalMinutes: interval, durationSeconds: duration };
+  await new Promise((resolve) => chrome.storage.local.set({ water: cfg }, resolve));
+  chrome.runtime.sendMessage({ type: 'WATER_UPDATED' }, () => { chrome.runtime.lastError; });
+  updateWellnessStatus('wStatus', cfg, '#60a5fa');
+  showToast(enabled ? `✅ Water reminder set every ${interval}m` : '⏸ Water reminder disabled');
+}
+
+// ─── Shared status updater ────────────────────────────────────────────────────
+
+function updateWellnessStatus(elId, cfg, activeColor) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (cfg.enabled) {
+    el.textContent = `🟢 ${cfg.intervalMinutes}m / ${cfg.durationSeconds}s`;
+    el.style.color = activeColor;
+  } else {
+    el.textContent = '⚫ Off';
+    el.style.color = 'var(--text-dim)';
+  }
+}
+
+// ─── Wellness DOMContentLoaded init ──────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Look Away
+  const laCfg = await loadLookAwaySettings();
+  document.getElementById('lookAwayEnabled').checked = laCfg.enabled;
+  document.getElementById('lookAwayInterval').value  = laCfg.intervalMinutes;
+  document.getElementById('lookAwayDuration').value  = laCfg.durationSeconds;
+  updateLaStatus(laCfg);
+  applyLookAwayToggleUi(laCfg.enabled);
+  document.getElementById('lookAwayEnabled').addEventListener('change', (e) => applyLookAwayToggleUi(e.target.checked));
   document.getElementById('saveLookAway').addEventListener('click', saveLookAwaySettings);
-
   document.getElementById('previewLookAway').addEventListener('click', () => {
     const dur = parseInt(document.getElementById('lookAwayDuration').value, 10) || 20;
-    chrome.runtime.sendMessage({ type: 'PREVIEW_LOOKAWAY', durationSeconds: dur }, () => {
-      chrome.runtime.lastError;
-    });
-    showToast('👁 Previewing reminder on current tab…');
+    chrome.runtime.sendMessage({ type: 'PREVIEW_LOOKAWAY', durationSeconds: dur }, () => { chrome.runtime.lastError; });
+    showToast('👁 Previewing on current tab…');
+  });
+
+  // Stand Up
+  const suCfg = await loadStandUpSettings();
+  document.getElementById('standUpEnabled').checked = suCfg.enabled;
+  document.getElementById('standUpInterval').value  = suCfg.intervalMinutes;
+  document.getElementById('standUpDuration').value  = suCfg.durationSeconds;
+  updateWellnessStatus('suStatus', suCfg, '#f472b6');
+  document.getElementById('standUpBody').style.opacity = suCfg.enabled ? '1' : '0.5';
+  document.getElementById('standUpEnabled').addEventListener('change', (e) => {
+    document.getElementById('standUpBody').style.opacity = e.target.checked ? '1' : '0.5';
+  });
+  document.getElementById('saveStandUp').addEventListener('click', saveStandUpSettings);
+  document.getElementById('previewStandUp').addEventListener('click', () => {
+    const dur = parseInt(document.getElementById('standUpDuration').value, 10) || 30;
+    chrome.runtime.sendMessage({ type: 'PREVIEW_STANDUP', durationSeconds: dur }, () => { chrome.runtime.lastError; });
+    showToast('🧘 Previewing stand-up reminder…');
+  });
+
+  // Water
+  const wCfg = await loadWaterSettings();
+  document.getElementById('waterEnabled').checked = wCfg.enabled;
+  document.getElementById('waterInterval').value  = wCfg.intervalMinutes;
+  document.getElementById('waterDuration').value  = wCfg.durationSeconds;
+  updateWellnessStatus('wStatus', wCfg, '#60a5fa');
+  document.getElementById('waterBody').style.opacity = wCfg.enabled ? '1' : '0.5';
+  document.getElementById('waterEnabled').addEventListener('change', (e) => {
+    document.getElementById('waterBody').style.opacity = e.target.checked ? '1' : '0.5';
+  });
+  document.getElementById('saveWater').addEventListener('click', saveWaterSettings);
+  document.getElementById('previewWater').addEventListener('click', () => {
+    const dur = parseInt(document.getElementById('waterDuration').value, 10) || 15;
+    chrome.runtime.sendMessage({ type: 'PREVIEW_WATER', durationSeconds: dur }, () => { chrome.runtime.lastError; });
+    showToast('💧 Previewing water reminder…');
   });
 });
+
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

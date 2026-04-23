@@ -1,6 +1,6 @@
-# TabGuard – Browser Time Limit & Eye Care Extension
+# ScreenZen – Browser Time Limit & Eye Care Extension
 
-> ⏱ Set active-time limits on websites, enforce away periods, and protect your eyes with built-in look-away reminders.
+> ⏱ Manage screen time, enforce focus sessions, and stay healthy with eye care, movement and hydration reminders.
 
 ---
 
@@ -15,6 +15,7 @@
 | **Away Period** | After closure, the domain is blocked for a configurable time with a live countdown |
 | **Away Progress Bar** | Per-domain settings show separate session and away-period progress bars |
 | **👁 Look Away Reminder** | Periodic full-screen eye-break overlay with animated exercises (20-20-20 rule) |
+| **Wellness Row** | Built-in reminders for **Standing Up** and **Drinking Water** to maintain health |
 | **Live Popup** | Animated ring timer showing time used / remaining |
 | **Session Reset** | Reset session time manually from popup or settings |
 | **Import / Export** | Backup and restore all rules as JSON |
@@ -30,7 +31,7 @@
 2. Enable **Developer mode** (top right toggle)
 3. Click **"Load unpacked"**
 4. Select the `browserext` folder (this folder)
-5. The TabGuard icon will appear in your toolbar
+5. The ScreenZen icon will appear in your toolbar
 
 > ✅ The `manifest.json` in the root is the **Chrome/Edge MV3** manifest.
 
@@ -52,7 +53,7 @@
 ## How to Use
 
 ### 1. Open Settings
-Click the TabGuard icon → **Settings** button, or right-click the icon → **Extension Options**.
+Click the ScreenZen icon → **Settings** button, or right-click the icon → **Extension Options**.
 
 ### 2. Add a Domain Rule
 Fill in the form:
@@ -78,32 +79,15 @@ Fill in the form:
 - Click 🔓 to **clear an active away period** early
 - Toggle the switch to **pause tracking** for a domain without deleting the rule
 
-### 6. 👁 Look Away Reminder (Eye Care)
-Protect your eyes during long screen sessions:
+### 6. Wellness Reminders
+Protect your health during long screen sessions:
 
-1. Scroll to the **Look Away Reminder** section in Settings
-2. **Toggle it on** using the switch in the section header
-3. Set your **interval** (how often — default 20 minutes) and **duration** (how long the overlay stays — default 20 seconds)
-4. Click **Save**
-5. Click **👁 Preview** to test the overlay immediately on the current tab
+1. Scroll to the **Wellness Row** in Settings
+2. **Look Away Reminder**: Every 20 minutes, look at something 20 feet away for 20 seconds.
+3. **Stand Up Reminder**: Exercises and stretches to keep you moving.
+4. **Drink Water Reminder**: Hydration tips and reminders to drink water.
 
-When the reminder fires, a beautiful animated overlay appears with one of five rotating eye exercises:
-
-| Exercise | What to do |
-|---|---|
-| 🏔️ **20-20-20 Rule** | Look at an object ~6 metres (20 ft) away |
-| 👁️ **Intentional Blinking** | Blink rapidly 10-15× to refresh your tear film |
-| 🔄 **Eye Rolling** | Roll eyes clockwise then counter-clockwise |
-| ✋ **Palming** | Cup warm hands over closed eyes in darkness |
-| 🎯 **Focus Shifting** | Alternate focus between a near thumb and far object |
-
-The overlay includes:
-- An **animated SVG eye** matching the exercise type
-- **Step-by-step instructions** numbered 1–4
-- A **depleting countdown ring** that ticks down to zero
-- A **Skip** button to dismiss early
-
-> 💡 The 20-20-20 rule is clinically recommended for reducing Computer Vision Syndrome (CVS) / digital eye strain.
+When a reminder fires, a beautiful animated overlay appears with specific instructions and a countdown.
 
 ---
 
@@ -148,8 +132,8 @@ browserext/
 | Permission | Why |
 |---|---|
 | `tabs` | To detect which tab/domain is active |
-| `storage` | To save your rules, session data, and look-away config locally |
-| `scripting` | To inject the closure overlay, blocked page, and eye-break reminder |
-| `alarms` | To fire the look-away reminder on a reliable periodic schedule |
+| `storage` | To save your rules, session data, and wellness config locally |
+| `scripting` | To inject the closure overlay, blocked page, and health reminders |
+| `alarms` | To fire the wellness reminders on a reliable periodic schedule |
 | `notifications` | Reserved for future notification support |
 | `<all_urls>` | To monitor all sites you've added rules for |

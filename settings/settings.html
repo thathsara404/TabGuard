@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TabGuard – Settings</title>
+  <title>ScreenZen – Settings</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet" />
@@ -24,8 +24,8 @@
       <div class="logo">
         <span class="logo-icon">⏱</span>
         <div>
-          <h1 class="logo-title">TabGuard</h1>
-          <p class="logo-sub">Time Limit Manager</p>
+          <h1 class="logo-title">ScreenZen</h1>
+          <p class="logo-sub">Digital Wellness & Focus</p>
         </div>
       </div>
       <div class="header-actions">
@@ -183,61 +183,116 @@
   <!-- Toast -->
   <div class="toast hidden" id="toast"></div>
 
-  <!-- Look Away Reminder -->
-  <section class="card lookaway-card" id="lookAwayCard">
-    <div class="section-header">
-      <h2 class="section-title">
-        <span class="section-icon">👁</span>
-        Look Away Reminder
-      </h2>
-      <label class="toggle" title="Enable / disable look-away reminders">
-        <input type="checkbox" id="lookAwayEnabled" />
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
+  <!-- Wellness Row: 3 health reminder cards side by side -->
+  <div class="wellness-grid">
 
-    <div id="lookAwayBody" class="lookaway-body">
-      <div class="lookaway-tip">
-        💡 <strong>20-20-20 Rule:</strong> Every 20 minutes, look at something 20 feet (6 m) away
-        for 20 seconds. Clinically proven to reduce digital eye strain.
+    <!-- 1. Look Away Reminder -->
+    <section class="card wellness-card lookaway-card" id="lookAwayCard">
+      <div class="section-header">
+        <h2 class="section-title"><span class="section-icon">👁</span> Look Away</h2>
+        <label class="toggle" title="Enable / disable look-away reminders">
+          <input type="checkbox" id="lookAwayEnabled" />
+          <span class="toggle-slider"></span>
+        </label>
       </div>
-
-      <div class="form-grid-2" style="margin-top:20px">
+      <p class="wellness-desc">20-20-20 eye strain relief — rotating eye exercises.</p>
+      <div id="lookAwayBody" class="lookaway-body wellness-body">
         <div class="form-group">
-          <label class="form-label" for="lookAwayInterval">
-            Reminder Every
-            <span class="badge">minutes</span>
-          </label>
+          <label class="form-label" for="lookAwayInterval">Every <span class="badge">min</span></label>
           <div class="input-with-icon">
             <span class="input-icon">⏰</span>
-            <input type="number" id="lookAwayInterval" class="form-input"
-              value="20" min="5" max="120" />
+            <input type="number" id="lookAwayInterval" class="form-input" value="20" min="5" max="120" />
           </div>
-          <span class="form-hint">Default: 20 min (20-20-20 rule)</span>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="lookAwayDuration">
-            Overlay Duration
-            <span class="badge">seconds</span>
-          </label>
+        <div class="form-group" style="margin-top:10px">
+          <label class="form-label" for="lookAwayDuration">Duration <span class="badge">sec</span></label>
           <div class="input-with-icon">
             <span class="input-icon">⏱</span>
-            <input type="number" id="lookAwayDuration" class="form-input"
-              value="20" min="10" max="120" />
+            <input type="number" id="lookAwayDuration" class="form-input" value="20" min="10" max="120" />
           </div>
-          <span class="form-hint">How long the reminder stays visible</span>
+        </div>
+        <div class="wellness-actions">
+          <span class="la-status wellness-status" id="laStatus"></span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" id="previewLookAway">Preview</button>
+            <button class="btn btn-primary btn-sm" id="saveLookAway">Save</button>
+          </div>
         </div>
       </div>
+    </section>
 
-      <div class="form-actions" style="margin-top:20px;justify-content:space-between;align-items:center">
-        <span class="la-status" id="laStatus"></span>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" id="previewLookAway">👁 Preview</button>
-          <button class="btn btn-primary" id="saveLookAway">Save</button>
+    <!-- 2. Stand Up & Move -->
+    <section class="card wellness-card standup-card" id="standUpCard">
+      <div class="section-header">
+        <h2 class="section-title"><span class="section-icon">🧘</span> Stand Up</h2>
+        <label class="toggle" title="Enable / disable stand-up reminders">
+          <input type="checkbox" id="standUpEnabled" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <p class="wellness-desc">Desk stretches, squats & micro-workouts to stay active.</p>
+      <div id="standUpBody" class="lookaway-body wellness-body">
+        <div class="form-group">
+          <label class="form-label" for="standUpInterval">Every <span class="badge">min</span></label>
+          <div class="input-with-icon">
+            <span class="input-icon">⏰</span>
+            <input type="number" id="standUpInterval" class="form-input" value="60" min="10" max="240" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:10px">
+          <label class="form-label" for="standUpDuration">Duration <span class="badge">sec</span></label>
+          <div class="input-with-icon">
+            <span class="input-icon">⏱</span>
+            <input type="number" id="standUpDuration" class="form-input" value="30" min="10" max="120" />
+          </div>
+        </div>
+        <div class="wellness-actions">
+          <span class="wellness-status" id="suStatus"></span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" id="previewStandUp">Preview</button>
+            <button class="btn btn-primary btn-sm" id="saveStandUp">Save</button>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- 3. Drink Water -->
+    <section class="card wellness-card water-card" id="waterCard">
+      <div class="section-header">
+        <h2 class="section-title"><span class="section-icon">💧</span> Drink Water</h2>
+        <label class="toggle" title="Enable / disable water reminders">
+          <input type="checkbox" id="waterEnabled" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <p class="wellness-desc">Stay hydrated — a glass of water keeps fatigue away.</p>
+      <div id="waterBody" class="lookaway-body wellness-body">
+        <div class="form-group">
+          <label class="form-label" for="waterInterval">Every <span class="badge">min</span></label>
+          <div class="input-with-icon">
+            <span class="input-icon">⏰</span>
+            <input type="number" id="waterInterval" class="form-input" value="45" min="10" max="180" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:10px">
+          <label class="form-label" for="waterDuration">Duration <span class="badge">sec</span></label>
+          <div class="input-with-icon">
+            <span class="input-icon">⏱</span>
+            <input type="number" id="waterDuration" class="form-input" value="15" min="5" max="60" />
+          </div>
+        </div>
+        <div class="wellness-actions">
+          <span class="wellness-status" id="wStatus"></span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" id="previewWater">Preview</button>
+            <button class="btn btn-primary btn-sm" id="saveWater">Save</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /wellness-grid -->
+
 
   <script src="settings.js"></script>
 

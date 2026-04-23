@@ -1,5 +1,5 @@
 /**
- * TabGuard Content Script
+ * ScreenZen Content Script
  * Injected into every page. Monitors URL and communicates with background.
  * Minimal footprint – only acts when a domain rule applies.
  */

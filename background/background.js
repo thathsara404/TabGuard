@@ -1,5 +1,5 @@
 /**
- * TabGuard – Background Service Worker
+ * ScreenZen – Background Service Worker
  * Tracks active tab time, enforces limits, and manages away periods.
  */
 
@@ -317,7 +317,7 @@ function showBlockedPage(domain, awayEndTimestamp) {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>TabGuard – Away Period Active</title>
+  <title>ScreenZen – Away Period Active</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -361,7 +361,7 @@ function showBlockedPage(domain, awayEndTimestamp) {
     <span class="icon">🚫</span>
     <h1>Away Period Active</h1>
     <p class="desc">You've reached your time limit for <span class="domain">${domain}</span>.</p>
-    <p class="desc">TabGuard is keeping you away to help you stay productive.</p>
+    <p class="desc">ScreenZen is keeping you away to help you stay productive.</p>
     <div class="countdown-wrap">
       <div class="countdown-label">Come back in</div>
       <div class="countdown" id="tg-cd">--:--</div>
@@ -670,7 +670,215 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 });
 
+// ─── Stand Up & Move Alarm ────────────────────────────────────────────────────
 
-// Boot look-away alarm
+const STANDUP_ALARM = 'tabguard-standup';
+
+async function getStandUpConfig() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['standUp'], (r) => {
+      resolve(r.standUp || { enabled: false, intervalMinutes: 60, durationSeconds: 30 });
+    });
+  });
+}
+
+async function initStandUpAlarm() {
+  const cfg = await getStandUpConfig();
+  await chrome.alarms.clear(STANDUP_ALARM);
+  if (cfg.enabled && cfg.intervalMinutes > 0) {
+    chrome.alarms.create(STANDUP_ALARM, { periodInMinutes: cfg.intervalMinutes });
+  }
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== STANDUP_ALARM) return;
+  const cfg = await getStandUpConfig();
+  if (!cfg.enabled) return;
+  const tab = await findBestContentTab();
+  if (!tab) return;
+  const exIdx = Math.floor(Math.random() * 5);
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: showStandUpOverlay,
+    args: [cfg.durationSeconds, exIdx],
+  }).catch(() => {});
+});
+
+function showStandUpOverlay(durationSec, exIdx) {
+  if (document.getElementById('tg-standup')) return;
+  const EX = [
+    { icon: '🧘', color: '#f472b6', title: 'Desk Stretch',    sub: 'Release neck & shoulder tension',        steps: ['Roll neck slowly in full circles (5×)', 'Shrug shoulders to ears, hold 3s, release', 'Reach both arms overhead and stretch tall', 'Shake out arms and loosen your hands'] },
+    { icon: '💪', color: '#a78bfa', title: 'Micro Workout',   sub: 'Get blood flowing without leaving your desk', steps: ['10 chair squats (stand fully, sit back)', '10 calf raises standing on tiptoes', '10 desk push-ups (hands on desk edge)', 'March in place for 30 seconds'] },
+    { icon: '🚶', color: '#34d399', title: 'Walk Break',      sub: 'Step away and reset your focus',         steps: ['Stand up slowly and take a deep breath', 'Walk to another room or around the office', 'Take the long route to get a glass of water', 'Return feeling refreshed and focused'] },
+    { icon: '🤸', color: '#fbbf24', title: 'Full Body Stretch', sub: 'Open your chest and lengthen your spine', steps: ['Stand and reach both arms toward the sky', 'Gently bend side-to-side (5× each side)', 'Clasp hands behind back and open chest', 'Touch toes gently — hold for 10 seconds'] },
+    { icon: '👐', color: '#60a5fa', title: 'Hand & Wrist Care', sub: 'Essential for keyboard & mouse users',  steps: ['Extend arms and open/close fists (15×)', 'Press palms together, prayer pose, hold 10s', 'Bend wrists back gently, hold 5 seconds', 'Shake hands loosely to release tension'] },
+  ];
+  const ex = EX[exIdx % EX.length];
+  const C = 2 * Math.PI * 40;
+  const ol = document.createElement('div');
+  ol.id = 'tg-standup';
+  ol.innerHTML = `<style>
+#tg-standup{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;animation:tgsu-in .4s ease}
+@keyframes tgsu-in{from{opacity:0}to{opacity:1}}
+@keyframes tgsu-out{to{opacity:0}}
+.tgsu-bg{position:absolute;inset:0;background:rgba(10,4,24,.75);backdrop-filter:blur(14px)}
+.tgsu-card{position:relative;z-index:1;background:rgba(255,255,255,.05);border:1px solid ${ex.color}33;border-radius:28px;padding:36px 40px 32px;max-width:460px;width:calc(100vw - 48px);text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.7);animation:tgsu-card-in .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes tgsu-card-in{from{transform:translateY(24px) scale(.95);opacity:0}to{transform:none;opacity:1}}
+.tgsu-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${ex.color};background:${ex.color}22;border:1px solid ${ex.color}44;border-radius:100px;padding:4px 12px;margin-bottom:16px}
+.tgsu-icon{font-size:64px;margin-bottom:12px;display:block;animation:tgsu-bounce 1.8s ease-in-out infinite}
+@keyframes tgsu-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.tgsu-title{font-size:22px;font-weight:800;color:#f1f0ff;margin:0 0 6px}
+.tgsu-sub{font-size:14px;color:rgba(241,240,255,.55);margin:0 0 22px}
+.tgsu-steps{text-align:left;display:flex;flex-direction:column;gap:8px;margin-bottom:28px}
+.tgsu-step{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:rgba(241,240,255,.8);line-height:1.5}
+.tgsu-step span{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${ex.color}33;border:1px solid ${ex.color}66;color:${ex.color};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.tgsu-cw{position:relative;width:90px;height:90px;margin:0 auto 10px}
+.tgsu-ring{width:90px;height:90px;transform:rotate(-90deg)}
+.tgsu-rbg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:6}
+.tgsu-rf{fill:none;stroke:${ex.color};stroke-width:6;stroke-linecap:round;stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:0;transition:stroke-dashoffset 1s linear;filter:drop-shadow(0 0 6px ${ex.color})}
+.tgsu-time{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#f1f0ff}
+.tgsu-lbl{font-size:12px;color:rgba(241,240,255,.35);margin-bottom:18px}
+.tgsu-skip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(241,240,255,.5);font-size:13px;font-weight:500;padding:8px 20px;cursor:pointer;font-family:inherit;transition:all .2s}
+.tgsu-skip:hover{background:rgba(255,255,255,.12);color:#f1f0ff}
+</style>
+<div class="tgsu-bg"></div>
+<div class="tgsu-card">
+  <div class="tgsu-badge">🧘 Movement Break</div>
+  <span class="tgsu-icon">${ex.icon}</span>
+  <h2 class="tgsu-title">${ex.title}</h2>
+  <p class="tgsu-sub">${ex.sub}</p>
+  <div class="tgsu-steps">${ex.steps.map((s,i)=>`<div class="tgsu-step"><span>${i+1}</span>${s}</div>`).join('')}</div>
+  <div class="tgsu-cw">
+    <svg class="tgsu-ring" viewBox="0 0 90 90"><circle class="tgsu-rbg" cx="45" cy="45" r="40"/><circle class="tgsu-rf" id="tgsu-rf" cx="45" cy="45" r="40"/></svg>
+    <div class="tgsu-time" id="tgsu-t">${durationSec}</div>
+  </div>
+  <div class="tgsu-lbl">seconds</div>
+  <button class="tgsu-skip" id="tgsu-skip">Skip</button>
+</div>`;
+  document.body.appendChild(ol);
+  let rem = durationSec;
+  const rf = document.getElementById('tgsu-rf');
+  const te = document.getElementById('tgsu-t');
+  const dismiss = () => { clearInterval(iv); ol.style.animation = 'tgsu-out .35s ease forwards'; setTimeout(() => ol.remove(), 370); };
+  const iv = setInterval(() => { rem--; if(te) te.textContent=rem; if(rf) rf.style.strokeDashoffset=C*(1-rem/durationSec); if(rem<=0) dismiss(); }, 1000);
+  document.getElementById('tgsu-skip').addEventListener('click', dismiss);
+}
+
+chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
+  if (msg.type === 'STANDUP_UPDATED') { initStandUpAlarm().then(() => sendResponse({ ok: true })); return true; }
+  if (msg.type === 'PREVIEW_STANDUP') {
+    findBestContentTab().then((tab) => {
+      if (!tab) return;
+      chrome.scripting.executeScript({ target: { tabId: tab.id }, func: showStandUpOverlay, args: [msg.durationSeconds || 30, Math.floor(Math.random() * 5)] }).catch(() => {});
+    });
+    sendResponse({ ok: true });
+  }
+});
+
+// ─── Drink Water Alarm ────────────────────────────────────────────────────────
+
+const WATER_ALARM = 'tabguard-water';
+
+async function getWaterConfig() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['water'], (r) => {
+      resolve(r.water || { enabled: false, intervalMinutes: 45, durationSeconds: 15 });
+    });
+  });
+}
+
+async function initWaterAlarm() {
+  const cfg = await getWaterConfig();
+  await chrome.alarms.clear(WATER_ALARM);
+  if (cfg.enabled && cfg.intervalMinutes > 0) {
+    chrome.alarms.create(WATER_ALARM, { periodInMinutes: cfg.intervalMinutes });
+  }
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== WATER_ALARM) return;
+  const cfg = await getWaterConfig();
+  if (!cfg.enabled) return;
+  const tab = await findBestContentTab();
+  if (!tab) return;
+  chrome.scripting.executeScript({ target: { tabId: tab.id }, func: showWaterOverlay, args: [cfg.durationSeconds] }).catch(() => {});
+});
+
+function showWaterOverlay(durationSec) {
+  if (document.getElementById('tg-water')) return;
+  const TIPS = [
+    'Even mild dehydration reduces focus and increases fatigue.',
+    'Your brain is ~75% water — keep it hydrated for peak performance.',
+    'Aim for 8 glasses (2 litres) of water per day.',
+    'Herbal tea, coconut water or fruit-infused water all count!',
+    'A glass of water now can prevent afternoon energy slumps.',
+  ];
+  const tip = TIPS[Math.floor(Math.random() * TIPS.length)];
+  const C = 2 * Math.PI * 40;
+  const ol = document.createElement('div');
+  ol.id = 'tg-water';
+  ol.innerHTML = `<style>
+#tg-water{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;animation:tgw-in .4s ease}
+@keyframes tgw-in{from{opacity:0}to{opacity:1}}
+@keyframes tgw-out{to{opacity:0}}
+.tgw-bg{position:absolute;inset:0;background:rgba(2,8,30,.78);backdrop-filter:blur(14px)}
+.tgw-card{position:relative;z-index:1;background:rgba(255,255,255,.05);border:1px solid #60a5fa33;border-radius:28px;padding:36px 40px 32px;max-width:420px;width:calc(100vw - 48px);text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.7);animation:tgw-card-in .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes tgw-card-in{from{transform:translateY(24px) scale(.95);opacity:0}to{transform:none;opacity:1}}
+.tgw-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#60a5fa;background:#60a5fa22;border:1px solid #60a5fa44;border-radius:100px;padding:4px 12px;margin-bottom:16px}
+.tgw-drop{font-size:72px;margin-bottom:10px;display:block;animation:tgw-drop 2s ease-in-out infinite}
+@keyframes tgw-drop{0%,100%{transform:scale(1) translateY(0)}40%{transform:scale(1.1) translateY(-6px)}60%{transform:scale(.95) translateY(2px)}}
+.tgw-fill{width:60px;height:80px;margin:0 auto 20px;position:relative;border-radius:4px 4px 10px 10px;background:rgba(255,255,255,.06);border:2px solid #60a5fa44;overflow:hidden}
+.tgw-water{position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(180deg,#60a5fa99,#2563eb);animation:tgw-wave 2s ease-in-out infinite}
+@keyframes tgw-wave{0%,100%{height:55%}50%{height:65%}}
+.tgw-title{font-size:22px;font-weight:800;color:#f1f0ff;margin:0 0 8px}
+.tgw-tip{font-size:13px;color:rgba(241,240,255,.6);margin:0 0 24px;line-height:1.6;font-style:italic}
+.tgw-cta{font-size:15px;font-weight:700;color:#60a5fa;background:#60a5fa18;border:1px solid #60a5fa44;border-radius:12px;padding:12px 24px;margin-bottom:24px;display:block}
+.tgw-cw{position:relative;width:80px;height:80px;margin:0 auto 8px}
+.tgw-ring{width:80px;height:80px;transform:rotate(-90deg)}
+.tgw-rbg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:6}
+.tgw-rf{fill:none;stroke:#60a5fa;stroke-width:6;stroke-linecap:round;stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:0;transition:stroke-dashoffset 1s linear;filter:drop-shadow(0 0 6px #60a5fa)}
+.tgw-time{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#f1f0ff}
+.tgw-lbl{font-size:12px;color:rgba(241,240,255,.35);margin-bottom:16px}
+.tgw-skip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(241,240,255,.5);font-size:13px;font-weight:500;padding:8px 20px;cursor:pointer;font-family:inherit;transition:all .2s}
+.tgw-skip:hover{background:rgba(255,255,255,.12);color:#f1f0ff}
+</style>
+<div class="tgw-bg"></div>
+<div class="tgw-card">
+  <div class="tgw-badge">💧 Hydration Break</div>
+  <div class="tgw-fill"><div class="tgw-water"></div></div>
+  <h2 class="tgw-title">Time to Drink Water!</h2>
+  <p class="tgw-tip">"${tip}"</p>
+  <span class="tgw-cta">🥤 Grab a glass of water now</span>
+  <div class="tgw-cw">
+    <svg class="tgw-ring" viewBox="0 0 80 80"><circle class="tgw-rbg" cx="40" cy="40" r="34"/><circle class="tgw-rf" id="tgw-rf" cx="40" cy="40" r="34"/></svg>
+    <div class="tgw-time" id="tgw-t">${durationSec}</div>
+  </div>
+  <div class="tgw-lbl">seconds</div>
+  <button class="tgw-skip" id="tgw-skip">Skip</button>
+</div>`;
+  document.body.appendChild(ol);
+  let rem = durationSec;
+  const rf = document.getElementById('tgw-rf');
+  const te = document.getElementById('tgw-t');
+  const dismiss = () => { clearInterval(iv); ol.style.animation = 'tgw-out .35s ease forwards'; setTimeout(() => ol.remove(), 370); };
+  const iv = setInterval(() => { rem--; if(te) te.textContent=rem; if(rf) rf.style.strokeDashoffset=C*(1-rem/durationSec); if(rem<=0) dismiss(); }, 1000);
+  document.getElementById('tgw-skip').addEventListener('click', dismiss);
+}
+
+chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
+  if (msg.type === 'WATER_UPDATED') { initWaterAlarm().then(() => sendResponse({ ok: true })); return true; }
+  if (msg.type === 'PREVIEW_WATER') {
+    findBestContentTab().then((tab) => {
+      if (!tab) return;
+      chrome.scripting.executeScript({ target: { tabId: tab.id }, func: showWaterOverlay, args: [msg.durationSeconds || 15] }).catch(() => {});
+    });
+    sendResponse({ ok: true });
+  }
+});
+
+// Boot all wellness alarms
 initLookAwayAlarm();
+initStandUpAlarm();
+initWaterAlarm();
+
 
