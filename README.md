@@ -1,4 +1,4 @@
-# ScreenZen – Browser Time Limit & Eye Care Extension
+# ScreenZen – Browser Time Limit & Health Care Extension
 
 > ⏱ Manage screen time, enforce focus sessions, and stay healthy with eye care, movement and hydration reminders.
 
