@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TabGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="popup-logo">
+        <span class="logo-icon">⏱</span>
+        <span class="logo-text">TabGuard</span>
+      </div>
+      <button class="settings-btn" id="openSettings" title="Open Settings">⚙️</button>
+    </div>
+
+    <!-- Current Tab Info -->
+    <div class="current-tab" id="currentTab">
+      <div class="tab-domain" id="tabDomain">—</div>
+      <div class="tab-status" id="tabStatus">Not tracked</div>
+    </div>
+
+    <!-- Timer Ring -->
+    <div class="timer-section" id="timerSection">
+      <div class="timer-ring-wrap">
+        <svg class="timer-ring" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="52" />
+          <circle class="ring-fill" id="ringFill" cx="60" cy="60" r="52"
+            stroke-dasharray="326.7" stroke-dashoffset="326.7" />
+        </svg>
+        <div class="timer-center">
+          <div class="timer-time" id="timerTime">0:00</div>
+          <div class="timer-label" id="timerLabel">used</div>
+        </div>
+      </div>
+      <div class="timer-meta">
+        <div class="meta-item">
+          <span class="meta-label">Limit</span>
+          <span class="meta-value" id="metaLimit">—</span>
+        </div>
+        <div class="meta-sep">·</div>
+        <div class="meta-item">
+          <span class="meta-label">Remaining</span>
+          <span class="meta-value" id="metaRemain">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Away Period Alert -->
+    <div class="away-alert hidden" id="awayAlert">
+      <span class="away-icon">🚫</span>
+      <div>
+        <div class="away-title">Away Period Active</div>
+        <div class="away-time" id="awayTime">Blocked for —</div>
+      </div>
+      <button class="away-clear" id="clearAway" title="Clear away period">✕</button>
+    </div>
+
+    <!-- No Rule Banner -->
+    <div class="no-rule hidden" id="noRule">
+      <span>📋 No rule for this domain.</span>
+      <button class="link-btn" id="addRuleBtn">Add one →</button>
+    </div>
+
+    <!-- Actions -->
+    <div class="popup-actions">
+      <button class="action-btn" id="resetBtn" title="Reset session time">
+        <span>🔄</span><span>Reset</span>
+      </button>
+      <button class="action-btn action-primary" id="settingsBtn">
+        <span>⚙️</span><span>Settings</span>
+      </button>
+    </div>
+
+    <!-- Domain List Preview -->
+    <div class="domains-preview" id="domainsPreview">
+      <div class="preview-title">Active Rules</div>
+      <div class="preview-list" id="previewList"></div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TabGuard – Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="settings.css" />
+</head>
+
+<body>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">⏱</span>
+        <div>
+          <h1 class="logo-title">TabGuard</h1>
+          <p class="logo-sub">Time Limit Manager</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" id="exportBtn">📤 Export</button>
+        <button class="btn btn-ghost" id="importBtn">📥 Import</button>
+        <input type="file" id="importFile" accept=".json" hidden />
+      </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-card">
+        <span class="stat-value" id="statDomains">0</span>
+        <span class="stat-label">Domains</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statActive">0</span>
+        <span class="stat-label">Active Rules</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statBlocked">0</span>
+        <span class="stat-label">In Away Period</span>
+      </div>
+    </div>
+
+    <!-- Add Domain Form -->
+    <section class="card add-card">
+      <h2 class="section-title">
+        <span class="section-icon">➕</span>
+        Add New Domain Rule
+      </h2>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="domainInput">Domain</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🌐</span>
+            <input type="text" id="domainInput" class="form-input" placeholder="e.g. facebook.com" autocomplete="off" />
+          </div>
+          <span class="form-hint">Without www – subdomains included automatically</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="limitInput">
+            Time Limit
+            <span class="badge">minutes</span>
+          </label>
+          <div class="input-with-icon">
+            <span class="input-icon">⏰</span>
+            <input type="number" id="limitInput" class="form-input" placeholder="30" min="1" max="1440" />
+          </div>
+          <span class="form-hint">Active (focused) time before closure</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="awayInput">
+            Away Period
+            <span class="badge">minutes</span>
+          </label>
+          <div class="input-with-icon">
+            <span class="input-icon">🚫</span>
+            <input type="number" id="awayInput" class="form-input" placeholder="60" min="0" max="10080" />
+          </div>
+          <span class="form-hint">Block duration after limit reached (0 = no block)</span>
+        </div>
+
+        <div class="form-group form-group-full">
+          <label class="form-label" for="messageInput">Closure Message</label>
+          <div class="input-with-icon">
+            <span class="input-icon">💬</span>
+            <input type="text" id="messageInput" class="form-input"
+              placeholder="Your time on this site has ended. Time for something productive!" maxlength="200" />
+          </div>
+          <span class="form-hint">Shown in the overlay before the tab closes</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" id="addDomainBtn">
+          <span>Add Rule</span>
+        </button>
+      </div>
+
+      <div class="alert alert-error hidden" id="formError"></div>
+    </section>
+
+    <!-- Domain List -->
+    <section class="card domains-card">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="section-icon">📋</span>
+          Domain Rules
+        </h2>
+        <button class="btn btn-ghost btn-sm" id="clearAllBtn">Clear All</button>
+      </div>
+
+      <div id="domainList" class="domain-list">
+        <div class="empty-state" id="emptyState">
+          <span class="empty-icon">🌐</span>
+          <p>No domain rules yet.</p>
+          <p class="empty-sub">Add a domain above to start tracking.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Session Status -->
+    <section class="card status-card">
+      <h2 class="section-title">
+        <span class="section-icon">📊</span>
+        Session Status
+      </h2>
+      <div id="sessionList" class="session-list">
+        <div class="empty-state">
+          <span class="empty-icon">📈</span>
+          <p>No active sessions tracked yet.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-backdrop hidden" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit Domain Rule</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Domain</label>
+          <input type="text" id="editDomain" class="form-input" readonly />
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Time Limit (minutes)</label>
+            <input type="number" id="editLimit" class="form-input" min="1" max="1440" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Away Period (minutes)</label>
+            <input type="number" id="editAway" class="form-input" min="0" max="10080" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Closure Message</label>
+          <input type="text" id="editMessage" class="form-input" maxlength="200" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="modalCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalSave">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="settings.js"></script>
+</body>
+
+</html>

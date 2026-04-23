@@ -1,0 +1,35 @@
+# ── Node / npm ───────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── Dev scripts (icon generation utility – not needed by extension users) ─────
+scripts/
+
+# ── OS metadata ───────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ── Editor / IDE ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── Build / temp artifacts ────────────────────────────────────────────────────
+*.zip
+*.crx
+*.xpi
+dist/
+build/
