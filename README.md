@@ -4,6 +4,38 @@
 
 ---
 
+## Plugin Previews
+
+### Settings Dashboard
+A comprehensive central hub where you can manage website-specific focus rules, set daily time limits, track usage statistics, and customize the extension's behavior.
+
+<img src="pluginscreens/10.png" width="800">
+
+### Popup Interface
+A quick-access menu that allows you to easily toggle active reminders on or off and adjust basic wellness settings directly from the extension icon.
+
+<img src="pluginscreens/11.png" width="400">
+
+### Wellness Reminders
+Periodic full-screen prompts that guide you through eye exercises, physical stretches, and hydration breaks to prevent digital fatigue.
+
+**Eye Break Reminders (20-20-20 Rule)**<br>
+<img src="pluginscreens/1.png" width="49%">
+<img src="pluginscreens/2.png" width="49%">
+<img src="pluginscreens/3.png" width="49%">
+<img src="pluginscreens/4.png" width="49%">
+
+**Movement Break Reminders**<br>
+<img src="pluginscreens/5.png" width="49%">
+<img src="pluginscreens/6.png" width="49%">
+<img src="pluginscreens/7.png" width="49%">
+<img src="pluginscreens/8.png" width="49%">
+
+**Hydration Reminder**<br>
+<img src="pluginscreens/9.png" width="800">
+
+---
+
 ## Features
 
 | Feature | Description |
